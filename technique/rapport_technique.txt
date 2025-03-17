@@ -1,0 +1,18 @@
+Introduction
+
+Présentation du projet
+Le projet MicroManager a pour objectif de simplifier et centraliser la gestion administrative des micro-entrepreneurs. Il propose un ensemble de fonctionnalités permettant de gérer efficacement les activités de leur micro-entreprise, notamment la création de contrats, la génération de factures, le suivi des paiements et l’analyse du chiffre d'affaires. L'application est conçue pour offrir une interface intuitive et permettre aux utilisateurs de gérer l'ensemble de leurs documents administratifs depuis une seule plateforme.
+
+Contexte et motivation
+Dans le cadre de la gestion d'une micro-entreprise, les tâches administratives peuvent être chronophages et complexes, notamment pour les entrepreneurs qui ne disposent pas d'outils adaptés pour automatiser ces processus. MicroManager vise à résoudre ce problème en facilitant la gestion des documents et en offrant des outils d'optimisation de la gestion des paiements et des revenus.
+
+Le projet s'inscrit également dans une perspective d'évolution : au cours du semestre 6, il est prévu d'y intégrer des outils d’intelligence artificielle pour analyser et prédire les tendances de chiffre d'affaires, et optimiser le suivi des paiements. Cette dimension IA est cependant prévue pour la deuxième phase du projet.
+
+Objectifs principaux
+Les principaux objectifs de MicroManager sont les suivants :
+
+Permettre la création et la gestion de contrats et de factures.
+Suivre les paiements des factures et offrir une vue historique du chiffre d'affaires.
+Intégrer une redirection simplifiée vers l'URSSAF pour le paiement des cotisations.
+Proposer une interface ergonomique qui facilite la gestion administrative pour les micro-entrepreneurs.
+Ce projet est également une opportunité de mettre en pratique les compétences de développement, d’optimisation, et de gestion de projet acquises durant la formation, tout en offrant une solution concrète aux besoins des micro-entrepreneurs.
