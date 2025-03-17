@@ -15,8 +15,8 @@ import Invoices from "./pages/invoice/Invoice";
 import CreateInvoice from "./pages/invoice/CreateInvoice";
 import EditInvoice from "./pages/invoice/EditInvoice";
 import ViewInvoice from "./pages/invoice/ViewInvoice";
-import RevenueTracking from "./pages/RevenueTracking";
-import ContractList from "./pages/contract/Contract";
+/* import RevenueTracking from "./pages/RevenueTracking";
+ */import ContractList from "./pages/contract/Contract";
 import AddContract from "./pages/contract/AddContract";
 
 function App() {
@@ -40,8 +40,8 @@ function App() {
               <Route path="/create-invoice" element={<CreateInvoice />} />
               <Route path="/edit-invoice/:invoiceId" element={<EditInvoice />} />
               <Route path="/view-invoice/:invoiceId" element={<ViewInvoice />} />
-              <Route path="/revenue" element={<RevenueTracking />} />
-              <Route path="/contracts" element={<ContractList />} />
+{/*               <Route path="/revenue" element={<RevenueTracking />} />
+ */}              <Route path="/contracts" element={<ContractList />} />
               <Route path="/add-contract" element={<AddContract />} />
             </Routes>
           </div>
