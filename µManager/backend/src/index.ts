@@ -62,7 +62,7 @@ const startServer = async () => {
     console.error(
       "Le serveur n'a pas pu démarrer en raison de problèmes de base de données."
     );
-    process.exit(1); // Arrêter l'application si la DB n'est pas prête
+    process.exit(1); 
   }
 };
 

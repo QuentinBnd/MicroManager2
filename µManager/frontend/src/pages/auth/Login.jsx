@@ -39,14 +39,14 @@ function Login() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       const data = await response.json();
-      
-      if(response.ok) {
+
+      if (response.ok) {
         // Filtrer les entreprises appartenant à l'utilisateur
         const userCompanies = data.filter(company => company.user && company.user.userId === userId);
-        
+
         // Console.log du nombre d'entreprises possédées par l'utilisateur
         console.log(`L'utilisateur possède ${userCompanies.length} entreprise(s)`);
-        
+
         if (userCompanies.length > 0) {
           // On stocke la première entreprise comme entreprise active
           localStorage.setItem('companyId', userCompanies[0].companyId);
@@ -70,11 +70,11 @@ function Login() {
       if (response.success && response.token && response.userId) {
         localStorage.setItem('token', response.token);
         localStorage.setItem('userId', response.userId);
-        
+
         addToast('success', 'Connexion réussie');
 
         const hasCompany = await doUserHaveCompany(response.userId);
-        if(hasCompany) {
+        if (hasCompany) {
           navigate('/dashboard');
         } else {
           navigate('/create-company');
@@ -101,7 +101,7 @@ function Login() {
               Accédez à votre espace µManager
             </p>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -123,7 +123,7 @@ function Login() {
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Mot de passe
@@ -144,13 +144,16 @@ function Login() {
                 />
               </div>
             </div>
-            
-            {/* <div className="mt-1 text-right">
-              <a href="#" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                Mot de passe oublié?
-              </a>
-            </div> */}
-            
+
+            <div className="text-right mb-6">
+              <Link
+                to="/forgot-password"
+                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors duration-200"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}
@@ -174,7 +177,7 @@ function Login() {
               )}
             </button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Vous n'avez pas de compte? {' '}
@@ -183,7 +186,7 @@ function Login() {
               </Link>
             </p>
           </div>
-          
+
           <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             <p>© {new Date().getFullYear()} µManager. Tous droits réservés.</p>
           </div>

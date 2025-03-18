@@ -1,5 +1,4 @@
 services:
-
   db:
     image: mariadb:latest
     environment:
@@ -7,6 +6,8 @@ services:
       MYSQL_DATABASE: micromanager
     ports:
       - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql  # Ajoutez cette ligne pour persister les données
 
   backend:
     build: ./backend
@@ -17,6 +18,7 @@ services:
       - /app/node_modules
     depends_on:
       - db
+
   phpmyadmin:
     image: phpmyadmin:latest
     environment:
@@ -24,3 +26,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "8081:80"
+
+# Déclarez le volume nommé ici
+volumes:
+  mariadb_data:

@@ -18,6 +18,9 @@ import ViewInvoice from "./pages/invoice/ViewInvoice";
 /* import RevenueTracking from "./pages/RevenueTracking";
  */import ContractList from "./pages/contract/Contract";
 import AddContract from "./pages/contract/AddContract";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+
 
 function App() {
   return (
@@ -40,9 +43,11 @@ function App() {
               <Route path="/create-invoice" element={<CreateInvoice />} />
               <Route path="/edit-invoice/:invoiceId" element={<EditInvoice />} />
               <Route path="/view-invoice/:invoiceId" element={<ViewInvoice />} />
-{/*               <Route path="/revenue" element={<RevenueTracking />} />
+              {/*               <Route path="/revenue" element={<RevenueTracking />} />
  */}              <Route path="/contracts" element={<ContractList />} />
               <Route path="/add-contract" element={<AddContract />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
             </Routes>
           </div>
         </Router>
