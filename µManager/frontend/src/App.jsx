@@ -20,6 +20,8 @@ import ViewInvoice from "./pages/invoice/ViewInvoice";
 import AddContract from "./pages/contract/AddContract";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import ChatbotWidget from "./components/ChatbotWidget";
+
 
 
 function App() {
@@ -51,6 +53,7 @@ function App() {
             </Routes>
           </div>
         </Router>
+        <ChatbotWidget />
       </div>
     </ToastProvider>
   );

@@ -34,4 +34,7 @@ export class Invoice {
 
   @OneToMany(() => InvoiceLine, (line) => line.invoice, { cascade: true })
   lines: InvoiceLine[];
+
+  @Column({ type: "timestamp", nullable: true })
+  lastReminderDate: Date;
 }

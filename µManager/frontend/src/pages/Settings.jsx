@@ -29,7 +29,152 @@ function Settings() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [deleteIsLoading, setDeleteIsLoading] = useState(false);
 
+    const [userCompanies, setUserCompanies] = useState([]);
+    const [showDeleteCompanyModal, setShowDeleteCompanyModal] = useState(false);
+    const [deleteCompanyLoading, setDeleteCompanyLoading] = useState(false);
+    const [selectedCompanyToDelete, setSelectedCompanyToDelete] = useState(null);
+    const [hasMultipleCompanies, setHasMultipleCompanies] = useState(false);
+    
+
+
     const { addToast } = useToast();
+
+    const fetchUserCompanies = async () => {
+        const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
+        
+        try {
+            const response = await fetch("http://localhost:3000/companies", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const userCompanies = data.filter(
+                    company => company.user && company.user.userId.toString() === userId.toString()
+                );
+                setUserCompanies(userCompanies);
+                setHasMultipleCompanies(userCompanies.length > 1);
+            }
+        } catch (error) {
+            console.error("Erreur lors de la récupération des entreprises:", error);
+        }
+    };
+
+    const fetchCompanyData = async () => {
+        const token = localStorage.getItem("token");
+        const companyId = localStorage.getItem("companyId");
+
+        try {
+            const response = await fetch(
+                `http://localhost:3000/companies/${companyId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.ok) {
+                const companyData = await response.json();
+                setCompanyData({
+                    name: companyData.name || "",
+                    address: companyData.address || "",
+                    city: companyData.city || "",
+                    postalCode: companyData.postalCode || "",
+                    phone: companyData.phone || "",
+                    email: companyData.email || "",
+                    rib: companyData.rib || "",
+                    siret: companyData.siret || "",
+                });
+            }
+        } catch (error) {
+            console.error("Erreur lors de la récupération des données entreprise :", error);
+        }
+    };
+    // Ajouter cette fonction à useEffect pour charger les entreprises au chargement de la page
+    useEffect(() => {
+        // Utiliser les fonctions existantes, ne pas appeler fetchUserData
+        fetchCompanyData();
+        fetchUserCompanies();
+    }, []);
+
+    // Fonction pour supprimer une entreprise
+    const handleDeleteCompany = async (companyId) => {
+        setDeleteCompanyLoading(true);
+        const token = localStorage.getItem("token");
+        const currentCompanyId = localStorage.getItem("companyId");
+
+        try {
+            const response = await fetch(`http://localhost:3000/companies/${companyId}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                addToast("success", "Entreprise supprimée avec succès !");
+
+                // Si l'entreprise supprimée est l'entreprise actuelle, rediriger vers une autre entreprise
+                if (companyId.toString() === currentCompanyId) {
+                    // Récupérer les entreprises mises à jour
+                    const updatedCompanies = userCompanies.filter(company => company.companyId.toString() !== companyId.toString());
+
+                    if (updatedCompanies.length > 0) {
+                        // Définir la première entreprise comme entreprise actuelle
+                        localStorage.setItem("companyId", updatedCompanies[0].companyId);
+                    } else {
+                        // Rediriger vers la page de création d'entreprise
+                        localStorage.removeItem("companyId");
+                        navigate("/create-company");
+                    }
+                }
+
+                // Mettre à jour la liste des entreprises
+                fetchUserCompanies();
+            } else {
+                const errorData = await response.json();
+                addToast("error", `Erreur : ${errorData.message || "Suppression impossible."}`);
+            }
+        } catch (error) {
+            console.error("Erreur réseau :", error);
+            addToast("error", "Erreur réseau. Veuillez réessayer.");
+        } finally {
+            setDeleteCompanyLoading(false);
+            setShowDeleteCompanyModal(false);
+            setSelectedCompanyToDelete(null);
+        }
+    };
+
+    const openDeleteCompanyModal = (companyId) => {
+        setSelectedCompanyToDelete(companyId);
+        setShowDeleteCompanyModal(true);
+    };
+
+
+    useEffect(() => {
+        // Vérifier si l'utilisateur possède plusieurs entreprises
+        const checkMultipleCompanies = async () => {
+            const token = localStorage.getItem("token");
+            const userId = localStorage.getItem("userId");
+
+            try {
+                const response = await fetch("http://localhost:3000/companies", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const companies = data.filter(
+                        (company) => company.user && company.user.userId.toString() === userId.toString()
+                    );
+                    setUserCompanies(companies);
+                    setHasMultipleCompanies(companies.length > 1);
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération des entreprises:", error);
+            }
+        };
+
+        checkMultipleCompanies();
+    }, []);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -99,32 +244,32 @@ function Settings() {
 
     const handleUserSubmit = async (e) => {
         e.preventDefault();
-      
+
         const token = localStorage.getItem("token");
         const userId = localStorage.getItem("userId");
-      
+
         try {
-          const response = await fetch(`http://localhost:3000/users/${userId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(formData),
-          });
-      
-          if (response.ok) {
-            const data = await response.json();
-            console.log("Utilisateur mis à jour :", data);
-            addToast("success", "Utilisateur mis à jour avec succès !");
-          } else {
-            const errorData = await response.json();
-            console.error("Erreur lors de la mise à jour de l'utilisateur :", errorData.message || response.statusText);
-            addToast("error", `Erreur : ${errorData.message || "Mise à jour impossible."}`);
-          }
+            const response = await fetch(`http://localhost:3000/users/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Utilisateur mis à jour :", data);
+                addToast("success", "Utilisateur mis à jour avec succès !");
+            } else {
+                const errorData = await response.json();
+                console.error("Erreur lors de la mise à jour de l'utilisateur :", errorData.message || response.statusText);
+                addToast("error", `Erreur : ${errorData.message || "Mise à jour impossible."}`);
+            }
         } catch (error) {
-          console.error("Erreur réseau :", error);
-          addToast("error", "Erreur réseau. Veuillez réessayer.");
+            console.error("Erreur réseau :", error);
+            addToast("error", "Erreur réseau. Veuillez réessayer.");
         }
     };
 
@@ -132,29 +277,29 @@ function Settings() {
         e.preventDefault();
         const token = localStorage.getItem("token");
         const companyId = localStorage.getItem("companyId");
-      
+
         try {
-          const response = await fetch(`http://localhost:3000/companies/${companyId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(companyData),
-          });
-      
-          if (response.ok) {
-            const data = await response.json();
-            console.log("Entreprise mise à jour :", data);
-            addToast("success", "Entreprise mise à jour avec succès !");
-          } else {
-            const errorData = await response.json();
-            console.error("Erreur lors de la mise à jour de l'entreprise :", errorData.message || response.statusText);
-            addToast("error", `Erreur : ${errorData.message || "Mise à jour impossible."}`);
-          }
+            const response = await fetch(`http://localhost:3000/companies/${companyId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(companyData),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Entreprise mise à jour :", data);
+                addToast("success", "Entreprise mise à jour avec succès !");
+            } else {
+                const errorData = await response.json();
+                console.error("Erreur lors de la mise à jour de l'entreprise :", errorData.message || response.statusText);
+                addToast("error", `Erreur : ${errorData.message || "Mise à jour impossible."}`);
+            }
         } catch (error) {
-          console.error("Erreur réseau :", error);
-          addToast("error", "Erreur réseau. Veuillez réessayer.");
+            console.error("Erreur réseau :", error);
+            addToast("error", "Erreur réseau. Veuillez réessayer.");
         }
     };
 
@@ -171,7 +316,7 @@ function Settings() {
     const handleDeleteAccount = async (e) => {
         e.preventDefault();
         setDeleteIsLoading(true);
-        
+
         const token = localStorage.getItem("token");
         const userId = localStorage.getItem("userId");
 
@@ -189,7 +334,7 @@ function Settings() {
                 localStorage.removeItem("token");
                 localStorage.removeItem("userId");
                 localStorage.removeItem("companyId");
-                
+
                 addToast("success", "Votre compte a été supprimé avec succès");
                 setTimeout(() => {
                     navigate("/");
@@ -224,11 +369,10 @@ function Settings() {
                     <div className="inline-flex bg-white dark:bg-gray-700 rounded-full shadow-md p-1">
                         <button
                             onClick={() => setActiveTab("user")}
-                            className={`px-6 py-2.5 rounded-full transition-all duration-200 ${
-                                activeTab === "user"
-                                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm"
-                                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            }`}
+                            className={`px-6 py-2.5 rounded-full transition-all duration-200 ${activeTab === "user"
+                                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                }`}
                         >
                             <div className="flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -239,11 +383,10 @@ function Settings() {
                         </button>
                         <button
                             onClick={() => setActiveTab("company")}
-                            className={`px-6 py-2.5 rounded-full transition-all duration-200 ${
-                                activeTab === "company"
-                                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm"
-                                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            }`}
+                            className={`px-6 py-2.5 rounded-full transition-all duration-200 ${activeTab === "company"
+                                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                }`}
                         >
                             <div className="flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -323,7 +466,7 @@ function Settings() {
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 <div className="pt-4 flex flex-col sm:flex-row gap-4 border-t border-gray-200 dark:border-gray-600">
                                     <button
                                         type="submit"
@@ -334,7 +477,7 @@ function Settings() {
                                         </svg>
                                         Enregistrer les modifications
                                     </button>
-                                    
+
                                     <button
                                         type="button"
                                         onClick={handleLogout}
@@ -346,7 +489,7 @@ function Settings() {
                                         Déconnexion
                                     </button>
                                 </div>
-                                
+
                                 {/* Section de suppression de compte */}
                                 <div className="pt-8 mt-8 border-t-2 border-red-200 dark:border-red-800">
                                     <h3 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-3">Zone de danger</h3>
@@ -374,7 +517,7 @@ function Settings() {
                                 </svg>
                                 Informations de votre entreprise
                             </h2>
-                            
+
                             <form onSubmit={handleCompanySubmit} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2">
@@ -390,7 +533,7 @@ function Settings() {
                                             placeholder="Nom de votre entreprise"
                                         />
                                     </div>
-                                    
+
                                     <div className="md:col-span-2">
                                         <label className="block text-gray-700 dark:text-gray-200 mb-2 font-medium">
                                             Adresse
@@ -404,7 +547,7 @@ function Settings() {
                                             placeholder="Adresse de l'entreprise"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-gray-700 dark:text-gray-200 mb-2 font-medium">
                                             Ville
@@ -418,7 +561,7 @@ function Settings() {
                                             placeholder="Ville"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-gray-700 dark:text-gray-200 mb-2 font-medium">
                                             Code postal
@@ -432,7 +575,7 @@ function Settings() {
                                             placeholder="Code postal"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-gray-700 dark:text-gray-200 mb-2 font-medium">
                                             Téléphone
@@ -446,7 +589,7 @@ function Settings() {
                                             placeholder="Numéro de téléphone"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-gray-700 dark:text-gray-200 mb-2 font-medium">
                                             Email professionnel
@@ -474,7 +617,7 @@ function Settings() {
                                             placeholder="RIB de l'entreprise"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-gray-700 dark:text-gray-200 mb-2 font-medium">
                                             SIRET
@@ -489,7 +632,7 @@ function Settings() {
                                         />
                                     </div>
                                 </div>
-                                
+
                                 <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                                     <button
                                         type="submit"
@@ -502,6 +645,103 @@ function Settings() {
                                     </button>
                                 </div>
                             </form>
+                            {hasMultipleCompanies && (
+                                <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                                        Vos entreprises
+                                    </h3>
+
+                                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                                            Vous avez actuellement {userCompanies.length} entreprises. Vous pouvez supprimer une entreprise si vous n'en avez plus besoin.
+                                        </p>
+                                    </div>
+
+                                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {userCompanies.map(company => (
+                                            <li key={company.companyId} className="py-4 flex items-center justify-between">
+                                                <div>
+                                                    <h4 className="text-base font-medium text-gray-900 dark:text-white">
+                                                        {company.name}
+                                                    </h4>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                        {company.address}, {company.postalCode} {company.city}
+                                                    </p>
+                                                    {company.companyId.toString() === localStorage.getItem("companyId") && (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100 mt-1">
+                                                            Entreprise actuelle
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    {company.companyId.toString() !== localStorage.getItem("companyId") && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openDeleteCompanyModal(company.companyId)}
+                                                            className="ml-3 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                        >
+                                                            Supprimer
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Modal de confirmation pour la suppression d'entreprise */}
+                            {showDeleteCompanyModal && (
+                                <div className="fixed z-50 inset-0 overflow-y-auto">
+                                    <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                                        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                                            <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                                        </div>
+
+                                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                                        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                                            <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                                <div className="sm:flex sm:items-start">
+                                                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
+                                                        <svg className="h-6 w-6 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                                        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
+                                                            Supprimer l'entreprise
+                                                        </h3>
+                                                        <div className="mt-2">
+                                                            <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                                Êtes-vous sûr de vouloir supprimer cette entreprise ? Cette action est irréversible et toutes les données associées (factures, clients, contrats) seront également supprimées.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteCompany(selectedCompanyToDelete)}
+                                                    disabled={deleteCompanyLoading}
+                                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                                >
+                                                    {deleteCompanyLoading ? "Suppression..." : "Supprimer"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowDeleteCompanyModal(false)}
+                                                    disabled={deleteCompanyLoading}
+                                                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                                >
+                                                    Annuler
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

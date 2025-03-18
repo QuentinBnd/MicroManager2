@@ -7,6 +7,7 @@ import invoiceLineRoutes from './invoiceLine.routes';
 import revenueRoutes from './revenue.routes';
 import dashboardRoutes from './dashboard.routes';
 import contractRoutes from './contract.routes';
+import chatbotRoutes from "./chatbot.routes";
 
 const router = Router();
 
@@ -18,5 +19,7 @@ router.use('/invoice-lines', invoiceLineRoutes);
 router.use('/revenue', revenueRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/contracts', contractRoutes);
+router.use("/api/chatbot", chatbotRoutes);
+
 
 export default router;

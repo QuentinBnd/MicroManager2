@@ -14,4 +14,7 @@ router.get('/company/:companyId', authMiddleware, InvoiceController.getInvoicesB
 router.put('/:invoiceId/lines', authMiddleware, InvoiceController.updateInvoiceLines);
 router.post('/:invoiceId/send-email', authMiddleware, InvoiceController.sendInvoiceByEmail);
 
+router.get("/overdue/:companyId", InvoiceController.getOverdueInvoices);
+router.post("/:invoiceId/send-reminder", InvoiceController.sendReminderEmail);
+
 export default router;

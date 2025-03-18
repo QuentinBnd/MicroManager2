@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import { Bar, Line, Pie } from "react-chartjs-2";
+import { useToast } from "../components/ToastContainer";
 import {
   Chart as ChartJS,
   BarElement,
@@ -44,9 +45,15 @@ function Dashboard() {
   const [paymentStatus, setPaymentStatus] = useState({});
   const [availableYears, setAvailableYears] = useState([]);
   const [year, setYear] = useState("");
+  const [overdueInvoices, setOverdueInvoices] = useState([]);
+  const [loadingReminderIds, setLoadingReminderIds] = useState([]);
+
+
 
   const token = localStorage.getItem("token");
   const companyId = localStorage.getItem("companyId");
+  const { addToast } = useToast();
+
 
   // Récupération des revenus du mois courant (en format padStart pour le mois)
   const fetchCurrentMonthRevenue = async () => {
@@ -235,6 +242,7 @@ function Dashboard() {
     fetchAvailableYears();
     fetchTopClients();
     fetchPaymentStatus();
+    fetchOverdueInvoices();
   }, []);
 
   useEffect(() => {
@@ -342,6 +350,75 @@ function Dashboard() {
         borderWidth: 2,
       },
     ],
+  };
+
+  const fetchOverdueInvoices = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/invoices/overdue/${companyId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setOverdueInvoices(data);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des factures impayées:", error);
+      setOverdueInvoices([]);
+    }
+  };
+
+  const sendReminderEmail = async (invoiceId, daysOverdue) => {
+    // Ajouter l'ID de la facture à la liste des chargements en cours
+    setLoadingReminderIds(prev => [...prev, invoiceId]);
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/invoices/${invoiceId}/send-reminder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ daysOverdue }),
+        }
+      );
+
+      if (response.ok) {
+        addToast("success", "Email de rappel envoyé avec succès");
+
+        // Mettre à jour la liste des factures impayées pour refléter la nouvelle date de rappel
+        setOverdueInvoices(prevInvoices =>
+          prevInvoices.map(invoice =>
+            invoice.invoiceId === invoiceId
+              ? { ...invoice, lastReminderDate: new Date().toISOString() }
+              : invoice
+          )
+        );
+      } else {
+        const error = await response.json();
+        addToast("error", `Erreur lors de l'envoi de l'email de rappel: ${error.message || 'Erreur inconnue'}`);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du rappel:", error);
+      addToast("error", "Erreur réseau lors de l'envoi du rappel");
+    } finally {
+      // Retirer l'ID de la facture de la liste des chargements
+      setLoadingReminderIds(prev => prev.filter(id => id !== invoiceId));
+    }
+  };
+
+  // Fonction pour vérifier si un rappel peut être envoyé (48h entre deux rappels)
+  const canSendReminder = (invoice) => {
+    if (!invoice.lastReminderDate) return true;
+
+    const lastReminder = new Date(invoice.lastReminderDate);
+    const now = new Date();
+    const hoursSinceLastReminder = (now - lastReminder) / (1000 * 60 * 60);
+
+    return hoursSinceLastReminder >= 48;
   };
 
   return (
@@ -589,7 +666,7 @@ function Dashboard() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
               <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                Taux de Paiement
+                Taux de Paiement Total
               </h3>
             </div>
             <div className="p-6 flex justify-center items-center">
@@ -599,6 +676,11 @@ function Dashboard() {
                   options={{
                     ...chartOptions,
                     maintainAspectRatio: true,
+                    scales: {
+                      // Désactivation complète des axes pour le camembert
+                      x: { display: false },
+                      y: { display: false }
+                    },
                     plugins: {
                       ...chartOptions.plugins,
                       legend: {
@@ -609,6 +691,119 @@ function Dashboard() {
                   }}
                 />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Box des factures impayées */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-8">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Factures impayées
+            </h2>
+
+            {overdueInvoices.length > 0 ? (
+              <div className="mt-4">
+                <div className="h-[300px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                  {overdueInvoices.map((invoice) => (
+                    <div
+                      key={invoice.invoiceId}
+                      className={`border-l-4 ${invoice.isLate ? "border-red-500" : "border-amber-500"
+                        } bg-gray-50 dark:bg-gray-700 rounded-r-lg p-4 transition hover:bg-gray-100 dark:hover:bg-gray-650`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="flex items-center">
+                            <div className="text-lg font-medium text-gray-800 dark:text-white">
+                              Facture #{invoice.invoiceId}
+                            </div>
+                            <span
+                              className={`ml-2 px-2 py-0.5 rounded-full text-xs ${invoice.isLate
+                                ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                }`}
+                            >
+                              {invoice.isLate ? "En retard" : "En attente"}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                            {invoice.client.name} {invoice.client.lastName} - {invoice.client.clientCompany}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            Émise le {new Date(invoice.issueDate).toLocaleDateString("fr-FR")}
+                          </div>
+                          <div className="text-sm font-medium mt-1">
+                            Montant: {invoice.total.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end space-y-2">
+                          <div className={`text-sm font-medium ${invoice.isLate ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
+                            {invoice.daysOverdue} jour{invoice.daysOverdue > 1 ? "s" : ""}
+                          </div>
+
+                          {invoice.lastReminderDate && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Dernier rappel: {new Date(invoice.lastReminderDate).toLocaleDateString("fr-FR")}
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => sendReminderEmail(invoice.invoiceId, invoice.daysOverdue)}
+                            disabled={loadingReminderIds.includes(invoice.invoiceId) || !canSendReminder(invoice)}
+                            className={`inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm 
+      ${loadingReminderIds.includes(invoice.invoiceId) || !canSendReminder(invoice)
+                                ? "bg-gray-300 dark:bg-gray-700 cursor-not-allowed"
+                                : "text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              }`}
+                          >
+                            {loadingReminderIds.includes(invoice.invoiceId) ? (
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                            {loadingReminderIds.includes(invoice.invoiceId)
+                              ? "Envoi en cours..."
+                              : !canSendReminder(invoice)
+                                ? "Déjà envoyé"
+                                : "Envoyer rappel"
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                  {overdueInvoices.length > 2 && (
+                    <p>Faites défiler pour voir toutes les {overdueInvoices.length} factures impayées</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-gray-800 dark:text-gray-200 text-lg font-medium">
+                  Aucune facture impayée
+                </p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Toutes vos factures ont été payées dans les délais
+                </p>
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-medium">Note légale:</span> En France, le délai légal de paiement est de 45 jours à compter de la date d'émission de la facture, selon l'article L441-6 du Code de commerce.
+              </p>
             </div>
           </div>
         </div>

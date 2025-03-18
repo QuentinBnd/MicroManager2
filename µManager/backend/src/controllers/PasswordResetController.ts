@@ -139,7 +139,7 @@ export class PasswordResetController {
                 Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe. Ce lien est valable pendant 1 heure.
               </div>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetLink}" class="button">Réinitialiser mon mot de passe</a>
+                <a href="${resetLink}" class="button" style="color: white !important;">Réinitialiser mon mot de passe</a>
               </div>
               <div class="message">
                 Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet e-mail en toute sécurité.
